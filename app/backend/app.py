@@ -3,7 +3,7 @@
 
 from io import StringIO
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 import asyncio
 import logging
 import os
@@ -13,7 +13,7 @@ import pandas as pd
 import pydantic
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Form
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 import openai
 from approaches.comparewebwithwork import CompareWebWithWork
 from approaches.compareworkwithweb import CompareWorkWithWeb
@@ -39,6 +39,10 @@ from approaches.tabulardataassistant import (
 )
 from shared_code.status_log import State, StatusClassification, StatusLog
 from azure.cosmos import CosmosClient
+import azure.cosmos.cosmos_client as cosmos_client
+import azure.cosmos.exceptions as exceptions
+from azure.cosmos.partition_key import PartitionKey
+import os
 
 
 # === ENV Setup ===
@@ -113,6 +117,16 @@ class StatusResponse(pydantic.BaseModel):
     version: str
 
 start_time = datetime.now()
+
+class Feedback(pydantic.BaseModel):
+    selectedIcon: str
+    comment: str
+
+COSMOSDB_HOST = "<REPLACE>"
+COSMOSDB_DATABASE_ID = "OpenAIChatBot"
+COSMOSDB_CONTAINER_ID = "ChatHistory"
+# REPLACE THIS
+COSMOSDB_MASTER_KEY = "<REPLACE>"
 
 IS_READY = False
 
@@ -896,6 +910,35 @@ async def get_file(request: Request):
     return StreamingResponse(stream,
                              media_type=blob_properties.content_settings.content_type, 
                              headers={"Content-Disposition": f"inline; filename={blob_name}"})
+
+@app.post("/log_chat")
+async def log_chat(request: Request):
+    if not request.headers.get("content-type") == "application/json":
+        raise HTTPException(status_code=415, detail="Request must be JSON")
+   
+    request_json = await request.json()
+    client = cosmos_client.CosmosClient(COSMOSDB_HOST, {'masterKey': COSMOSDB_MASTER_KEY}, user_agent="OpenAIChatBot", user_agent_overwrite=True)
+    try:
+        db = client.create_database_if_not_exists(id=COSMOSDB_DATABASE_ID)
+        container = db.create_container_if_not_exists(id=COSMOSDB_CONTAINER_ID, partition_key=PartitionKey(path='/sessionID'))
+        session_id = str(date.today()) + "-" + request_json["sessionId"]
+        current_time = datetime.now()
+        log_entry = {
+            'id': current_time.isoformat() + "-" + session_id,
+            'datetime': current_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'sessionID': session_id,
+            'user_input': request_json["question"],
+            'model_response': request_json["response"],
+            'model_response_time': request_json["responseTime"],
+            'feedback': request_json["feedback"],
+            'feedback_comment': request_json["feedbackComment"],
+            'error_flag': request_json["errorFlag"]
+        }
+        container.create_item(body=log_entry)
+        return {"id": log_entry['id']}
+    
+    except exceptions.CosmosHttpResponseError as e:
+        raise HTTPException(status_code=500, detail=f"CosmosDB error: {e.message}")
 
 app.mount("/", StaticFiles(directory="static"), name="static")
 

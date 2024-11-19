@@ -221,3 +221,13 @@ export type FetchCitationFileResponse = {
     file_blob: Blob;
     error?: string;
 }
+
+export type ChatHistory = {
+    sessionId: string,
+    question: string,
+    response: string,
+    responseTime: number,
+    feedback: string,
+    feedbackComment: string,
+    errorFlag: string
+}

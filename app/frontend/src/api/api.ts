@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { ChatResponse, 
+import { 
     ChatRequest, 
     AllFilesUploadStatus, 
     GetUploadStatusRequest, 
@@ -17,7 +17,31 @@ import { ChatResponse,
     GetFeatureFlagsResponse,
     getMaxCSVFileSizeType,
     FetchCitationFileResponse,
+    ChatHistory
     } from "./models";
+
+import { BACKEND_URI } from "./config"; // Adjust the path as necessary
+const sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+export async function logChatApi(historyRec: ChatHistory, idToken: string | undefined): Promise<Response> {
+    const url = "log_chat";
+    return await fetch(`${BACKEND_URI}/${url}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+            sessionId: sessionId,
+            question: historyRec.question,
+            response: historyRec.response,
+            responseTime: historyRec.responseTime,
+            feedback: historyRec.feedback,
+            feedbackComment: historyRec.feedbackComment,
+            errorFlag: historyRec.errorFlag
+        })
+    });
+}
 
 export async function chatApi(options: ChatRequest, signal: AbortSignal): Promise<Response> {
     const response = await fetch("/chat", {

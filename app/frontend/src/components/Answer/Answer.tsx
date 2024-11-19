@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { useMemo } from "react";
-import { Stack, IconButton } from "@fluentui/react";
+import { useMemo, useState } from "react";
+import { Stack, IconButton, TextField } from "@fluentui/react";
 import { ShieldCheckmark20Regular } from '@fluentui/react-icons';
+import { Icon } from '@fluentui/react/lib/Icon';
+import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 
 import styles from "./Answer.module.css";
 
@@ -34,6 +36,9 @@ interface Props {
     answerStream: ReadableStream | undefined;
     setAnswer?: (data: ChatResponse) => void;
     setError?: (data: string) => void;
+    logChat: (question: string, response: string, responseTime: number, feedback: string, feedbackComment: string, errorFlag: string) => void;
+    question: string;
+    responseTime: number;
 }
 
 export const Answer = ({
@@ -53,9 +58,42 @@ export const Answer = ({
     chatMode,
     answerStream,
     setAnswer,
-    setError
+    setError,
+    logChat,
+    question,
+    responseTime
 }: Props) => {
     const parsedAnswer = useMemo(() => parseAnswerToHtml(answer.answer, answer.approach, answer.work_citation_lookup, answer.web_citation_lookup, answer.thought_chain, onCitationClicked), [answer]);
+    const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
+    const [comment, setComment] = useState<string>("");
+    const [placeholder, setPlaceholder] = useState("Type your comment here. Max characters: 500");
+    const [isDisabled, setIsDisabled] = useState(false);
+    const [feedback, setFeedback] = useState<string>("No Value");
+
+    const toggleComment = (iconName: string) => {
+        setSelectedIcon(prevIcon => (prevIcon === iconName ? null : iconName));
+        setComment('');
+    };
+
+    const IconFeedbackLogic = (iconName: string) => {
+        (iconName === 'Like') ? setFeedback("Positive") : setFeedback("Negative");
+    }
+
+
+    const handleSubmit = async () => {
+        try {
+            if (selectedIcon) {
+                logChat(question, answer.answer, responseTime, (selectedIcon === 'Like') ? "Positive" : "Negative", comment, "N"); // Replace with actual parameters
+                setIsDisabled(true);
+                setPlaceholder(comment);
+            } else {
+                console.error("No icon selected for feedback");
+            }
+            console.log("Feedback submitted successfully");
+        } catch (error) {
+            console.error("Error submitting feedback:", error);
+        }
+    };
 
     return (
         <Stack className={`${answer.approach == Approaches.ReadRetrieveRead ? styles.answerContainerWork : 
@@ -109,8 +147,43 @@ export const Answer = ({
                     /> }
             </Stack.Item>
 
+            <Stack.Item className={`${styles.flexCenter}`}>
+                <div className={`${styles.flexCenter} ${styles.iconFont24}`}>
+                    <span className={`${styles.onHover} ${selectedIcon === 'Like' ? styles.thumbSelected : ''} ${isDisabled ? styles.disabled : ''}`} onClick={() => !isDisabled && toggleComment('Like')}>
+                        <Icon iconName="Like" className={`${styles.flexCenter}`}/>
+                    </span>
+                </div>
+                <div className={`${styles.flexCenter} ${styles.iconFont24}`}>
+                    <span className={`${styles.onHover} ${selectedIcon === 'Dislike' ? styles.thumbSelected : ''} ${isDisabled ? styles.disabled : ''}`} onClick={() => !isDisabled && toggleComment('Dislike')}>
+                        <Icon iconName="Dislike" className={`${styles.flexCenter}`}/>
+                    </span>
+                </div>
+            </Stack.Item>
+            <Stack.Item>
+            {selectedIcon && (
+                <div>
+                    <TextField
+                        label="Add a comment (optional)"
+                        multiline
+                        rows={3}
+                        resizable={!isDisabled}
+                        placeholder={placeholder}
+                        value={comment}
+                        onChange={(e, newValue) => setComment(newValue || '')}
+                        disabled={isDisabled}
+                        maxLength={500}
+                    />
+                    {!isDisabled ? (
+                        <PrimaryButton className={`${styles.quarterMargin}`} onClick={handleSubmit} disabled={isDisabled}>Submit</PrimaryButton>
+                    ) : (
+                        <p>Thank you for your feedback!</p>
+                    )}
+                </div>
+            )}
+            </Stack.Item>
+
             {(parsedAnswer.approach == Approaches.ChatWebRetrieveRead && !!parsedAnswer.web_citations.length) && (
-                <Stack.Item>
+                <Stack.Item className={`${styles.quarterMargin}`}>
                     <Stack horizontal wrap tokens={{ childrenGap: 5 }}>
                         <span className={styles.citationLearnMore}>Citations:</span>
                         {parsedAnswer.web_citations.map((x, i) => {
@@ -127,7 +200,7 @@ export const Answer = ({
                 
             )}
             {(parsedAnswer.approach == Approaches.ReadRetrieveRead && !!parsedAnswer.work_citations.length) && (
-                <Stack.Item>
+                <Stack.Item className={`${styles.quarterMargin}`}>
                     <Stack horizontal wrap tokens={{ childrenGap: 5 }}>
                         <span className={styles.citationLearnMore}>Citations:</span>
                         {parsedAnswer.work_citations.map((x, i) => {

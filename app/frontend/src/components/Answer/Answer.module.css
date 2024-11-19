@@ -265,3 +265,39 @@ sup {
     align-items: center;
     flex-direction: column;
 }
+
+.flexCenter {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.iconFont24 {
+    font-size: 24px;
+    width: 3rem;
+}
+
+.thumbSelected i {
+    background-color: #ddd;
+}
+
+.onHover {
+    cursor: pointer;
+    width: 80%;
+}
+
+.onHover i {
+    border-radius: .2rem;
+}
+
+.onHover:hover {
+    background-color: #eaeaea;
+}
+
+.disabled {
+  pointer-events: none;
+}
+
+.quarterMargin {
+    margin: .25rem 0;
+}

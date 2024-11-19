@@ -10,6 +10,13 @@ export type ExampleModel = {
     value: string;
 };
 
+
+// Example options for Contoso testing, replace the array options below with these.
+//
+// { text: "What is Contoso Electronics Mision?", value: "What is Contoso Electronics Mision?" },
+// { text: "What are Contoso Electronics Values?", value: "What are Contoso Electronics Values?" },
+// { text: "Provide recommendations for writing the performance review?", value: "Provide some recommendations for writing the performance review for Contoso Electronics?" }
+
 const EXAMPLES: ExampleModel[] = [
     { text: "Are there any radio telescopes in Australia?", value: "Are there any radio telescopes in Australia?" },
     { text: "What are Microsoft's primary sources of revenue?", value: "What are Microsoft's primary sources of revenue?" },

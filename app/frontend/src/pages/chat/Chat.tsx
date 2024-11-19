@@ -11,7 +11,7 @@ import styles from "./Chat.module.css";
 import rlbgstyles from "../../components/ResponseLengthButtonGroup/ResponseLengthButtonGroup.module.css";
 import rtbgstyles from "../../components/ResponseTempButtonGroup/ResponseTempButtonGroup.module.css";
 
-import { chatApi, Approaches, ChatResponse, ChatRequest, ChatTurn, ChatMode, getFeatureFlags, GetFeatureFlagsResponse } from "../../api";
+import { chatApi, Approaches, ChatResponse, ChatRequest, ChatTurn, ChatMode, getFeatureFlags, GetFeatureFlagsResponse, ChatHistory, logChatApi } from "../../api";
 import { Answer, AnswerError, AnswerLoading } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
 import { ExampleList } from "../../components/Example";
@@ -27,6 +27,7 @@ import { InfoContent } from "../../components/InfoContent/InfoContent";
 import { FolderPicker } from "../../components/FolderPicker";
 import { TagPickerInline } from "../../components/TagPicker";
 import React from "react";
+import Feedback from "react-bootstrap/esm/Feedback";
 
 const Chat = () => {
     const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
@@ -70,6 +71,10 @@ const Chat = () => {
     const [answers, setAnswers] = useState<[user: string, response: ChatResponse][]>([]);
     const [answerStream, setAnswerStream] = useState<ReadableStream | undefined>(undefined);
     const [abortController, setAbortController] = useState<AbortController | undefined>(undefined);
+    const [lastResponseId, setLastResponseId] = useState<string | null>(null); // Define lastResponseId
+    const [responseRequestTime, setResponseRequestTime] = useState<Date>(new Date());
+    const [responseTime, setResponseTime] = useState<number | null>(null);
+    const [feedback, setFeedback] = useState<string>("No Value");
 
     async function fetchFeatureFlags() {
         try {
@@ -95,6 +100,7 @@ const Chat = () => {
         setIsLoading(true);
         setActiveCitation(undefined);
         setActiveAnalysisPanelTab(undefined);
+        setResponseRequestTime(new Date());
 
         try {
             const history: ChatTurn[] = answers.map(a => ({ user: a[0], bot: a[1].answer }));
@@ -144,10 +150,26 @@ const Chat = () => {
 
             setAnswerStream(result.body);
         } catch (e) {
+            console.log(e);
             setError(e);
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const logChat = async (question: string, response: string, responseTime: number, feedback: string, feedbackComment: string, errorFlag: string) => {
+        const historyRec: ChatHistory = {
+            question: question,
+            response: response,
+            responseTime: responseTime,
+            feedback: feedback,
+            feedbackComment: feedbackComment,
+            errorFlag: errorFlag,
+            sessionId: ""
+        };
+        logChatApi(historyRec, undefined).then(response => response.text()).then(data => {
+            setLastResponseId(data);
+        });
     };
 
     const clearChat = () => {
@@ -329,6 +351,17 @@ const Chat = () => {
             updatedAnswers[index] = [updatedAnswers[index][0], response];
             return updatedAnswers;
         });
+        console.log("Answer updated at index " + index);
+        console.log(response);
+        console.log(answers);
+        if (response.answer) {
+            const responseFinishTime = new Date();
+            const timeDiff = (responseFinishTime.getTime() - responseRequestTime.getTime()) / 1000;
+            setResponseTime(timeDiff);
+            logChat(lastQuestionRef.current, response.answer, timeDiff ?? 0, feedback, "", "N");
+        } else {
+            console.log("No answer");
+        }
     }
 
     const removeAnswerAtIndex = (index: number) => {
@@ -392,6 +425,9 @@ const Chat = () => {
                                     />
                                     <div className={styles.chatMessageGpt}>
                                         <Answer
+                                            logChat={logChat}
+                                            question={lastQuestionRef.current}
+                                            responseTime={responseTime ?? 0}
                                             key={index}
                                             answer={answer[1]}
                                             answerStream={answerStream}
