@@ -1,0 +1,96 @@
+<body style="background-image: url('screencap.png'); background-size: 100% 100%;">
+ 
+    <style>
+    .pw-chat-modal {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        right: 15px;
+        border: 3px solid #f1f1f1;
+        z-index: 9;
+    }
+    /* Buttons used to open and close the chat form - fixed at the bottom of the page */
+    .pw-chat-open-btn, .pw-chat-close-btn {
+        background-color: #0077C8;    
+        border-radius: 50%;
+        border: 2px solid rgb(255, 255, 255);
+        bottom: 15px;
+        box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 20px;
+        color: white;
+        height: 64px;
+        position: fixed;
+        right: 15px;
+        width: 64px;
+        cursor: pointer;
+    }
+    .pw-chat-open-btn {
+        font-size: 28px;
+    }
+    /* Button used to close the chat form - fixed at the bottom of the page */
+    .pw-chat-close-btn {
+        font-size: 20px;
+    }
+    /* Add some hover effects to buttons */
+    .pw-chat-open-btn:hover, .pw-chat-close-btn:hover {
+      opacity: .9;
+    }    
+    .pw-chat-container {
+        right: 15px;
+        background-color: transparent;
+        /* border: 1px solid rgb(238, 238, 238); */
+        border-radius: 12px;
+        box-shadow:
+            0px 2px 2px rgba(255, 255, 255, 0.1),
+            2px 0px 2px rgba(255, 255, 255, 0.1),
+            -2px 0px 2px rgba(255, 255, 255, 0.1),
+            0px -2px 2px rgba(255, 255, 255, 0.1);        
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        overflow: hidden;
+        resize: horizontal;
+        height: calc(100% - 102px);
+        width: 600px;
+        min-width: 400px;
+        max-width: calc(-50px + 100vw);
+        bottom: 85px;
+        top: auto;
+        animation-name: fadeIn;
+        animation-duration: 1s;
+    }
+    @media (max-width:767.99px) {
+        .pw-chat-container {
+            right: 0;
+            height: 95vh;
+            width: 100%;
+            max-width: 100%;
+            top: 0;
+        }
+    }
+</style>
+ 
+    <div id="pwChatModal" class="pw-chat-modal">
+<div>
+<div> </div>
+<iframe class="pw-chat-container" scrolling="no" frameborder="0" allowtransparency="true" src="https://<source-here>/index.html" title="PW Chatbot"></iframe>
+</div>
+<button type="button" class="pw-chat-close-btn" onclick="closeChatForm()">&#x2573;</button>
+</div>
+<cfparam name="url.chatbub" default="0">
+<cfif url.chatbub eq "1">
+<button class="pw-chat-open-btn" id="pwChatBubble" onclick="openChatForm()">&#x1F4AC;</button> 
+<cfelse>
+<button class="pw-chat-open-btn" id="pwChatBubble" onclick="openChatForm()" style="background: none; border: none; box-shadow: none; height: 78px; width: 88px;">
+<img src="chatbubble.png" alt="chatbutton" style="width: 80px">
+</button>
+</cfif>
+<script>
+        function openChatForm() {
+            document.getElementById("pwChatModal").style.display = "block";
+            document.getElementById("pwChatBubble").style.display = "none";
+        }
+        function closeChatForm() {
+            document.getElementById("pwChatModal").style.display = "none";
+            document.getElementById("pwChatBubble").style.display = "block";
+        }    
+</script>
