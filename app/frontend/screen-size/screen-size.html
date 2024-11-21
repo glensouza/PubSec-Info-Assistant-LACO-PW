@@ -76,14 +76,7 @@
 </div>
 <button type="button" class="pw-chat-close-btn" onclick="closeChatForm()">&#x2573;</button>
 </div>
-<cfparam name="url.chatbub" default="0">
-<cfif url.chatbub eq "1">
 <button class="pw-chat-open-btn" id="pwChatBubble" onclick="openChatForm()">&#x1F4AC;</button> 
-<cfelse>
-<button class="pw-chat-open-btn" id="pwChatBubble" onclick="openChatForm()" style="background: none; border: none; box-shadow: none; height: 78px; width: 88px;">
-<img src="chatbubble.png" alt="chatbutton" style="width: 80px">
-</button>
-</cfif>
 <script>
         function openChatForm() {
             document.getElementById("pwChatModal").style.display = "block";
