@@ -121,8 +121,6 @@ Do not use this code with untrusted inputs, with elevated permissions, or withou
 
 ## User Experience
 
-
-
 ![Chat screen](/docs/images/info-assist-chat-ui.png)
 
 The end user leverages the web interface as the primary method to engage with the IA agent template, and the Azure OpenAI service. The user interface is very similar to that of the OpenAI ChatGPT interface, though it provides different and additional functionality which is outlined on the [User Experience](/docs/features/user_experience.md) page.
@@ -148,3 +146,23 @@ We've starting with text-based image retrieval, but in the future, we have plans
 ### Adding Evaluation Guidance and Metrics
 
 To ensure transparency and accountability, we are researching comprehensive evaluation guidance and metrics. This will assist users in assessing the performance and trustworthiness of AI-generated responses, fostering confidence in the platform.
+
+## (*Optional*) Export Log Analytics Workspace Data Continuosly to Storage Account
+
+The solution already has logging turned on to Application Insights resource, the Log Analytics Workspace that it persists to, and a Storage Account. We can persist the data to Storage Account so that it can be used as data source for a new report in PowerBI to create a dashboard for metrics related to application performance. You can [learn more on this Microsoft Learn page](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/logs-data-export).
+
+
+![data-export-overview.png](../images/data-export-overview.png)
+
+1. Open the Log Analytics Workspace. It should be named something like this: `infoasst-la-rclym`
+1. Navigate to `Settings` > `Data export`
+1. Click `+ New export rule`
+1. Under `Rule name` name the rule, maybe something like `continuous-export`
+1. Make sure `Enable upon creation` is `checked` [X]
+1. Click `Next`
+1. For **Source** take a look and see if you want to be selective on what kinds of logs you'd like to persist long-term. Maybe start with all of them and you can reduce the kinds of logs later.
+1. Click `Next`
+1. For **Destination** make sure the type is set to `Storage Account`
+1. Select the appropriate `Subscription` and `Storage account` from the dropdowns
+1. Click `Next`
+1. Click `Create`
