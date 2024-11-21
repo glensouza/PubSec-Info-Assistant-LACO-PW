@@ -51,6 +51,7 @@ export async function chatApi(options: ChatRequest, signal: AbortSignal): Promis
         },
         body: JSON.stringify({
             history: options.history,
+            sessionId: sessionId,
             approach: options.approach,
             overrides: {
                 semantic_ranker: options.overrides?.semanticRanker,

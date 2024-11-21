@@ -43,6 +43,7 @@ import azure.cosmos.cosmos_client as cosmos_client
 import azure.cosmos.exceptions as exceptions
 from azure.cosmos.partition_key import PartitionKey
 import os
+import time
 
 
 # === ENV Setup ===
@@ -79,6 +80,8 @@ ENV = {
     "COSMOSDB_URL": None,
     "COSMOSDB_LOG_DATABASE_NAME": "statusdb",
     "COSMOSDB_LOG_CONTAINER_NAME": "statuscontainer",
+    "COSMOSDB_TELEMETRY_DATABASE_NAME": "telemetrydb",
+    "COSMOSDB_TELEMETRY_CONTAINER_NAME": "telemetrycontainer",
     "QUERY_TERM_LANGUAGE": "English",
     "TARGET_EMBEDDINGS_MODEL": "BAAI/bge-small-en-v1.5",
     "ENRICHMENT_APPSERVICE_URL": "enrichment",
@@ -162,6 +165,14 @@ statusLog = StatusLog(
     azure_credential,
     ENV["COSMOSDB_LOG_DATABASE_NAME"],
     ENV["COSMOSDB_LOG_CONTAINER_NAME"]
+)
+
+# Set TelemetryLog to allow access to CosmosDB for telemetry logging
+telemetryLog = StatusLog(
+    ENV["COSMOSDB_URL"],
+    azure_credential,
+    ENV["COSMOSDB_TELEMETRY_DATABASE_NAME"],
+    ENV["COSMOSDB_TELEMETRY_CONTAINER_NAME"]
 )
 
 # Set up clients for Cognitive Search and Storage
@@ -331,8 +342,13 @@ async def chat(request: Request):
     Raises:
         dict: The error response if an exception occurs during the chat
     """
+    # Measure the time it took to get an answer from the LLM
+    chat_start_time = time.time()
+    
     json_body = await request.json()
     approach = json_body.get("approach")
+    session_id = str(date.today()) + "-" + json_body["sessionId"]
+    current_time = datetime.now()
     try:
         impl = chat_approaches.get(Approaches(int(approach)))
         if not impl:
@@ -350,9 +366,39 @@ async def chat(request: Request):
                          {},
                          json_body.get("thought_chain", {}))
 
+        # Log the response time
+        end_time = time.time()
+        response_time = end_time - chat_start_time
+        log_entry = {
+            'id': current_time.isoformat() + "-" + session_id,
+            'datetime': current_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'sessionID': session_id,
+            'response_time': response_time,
+            'error': ""
+        }
+        telemetry_cosmos_client = CosmosClient(url=telemetryLog._url, credential=azure_credential, consistency_level='Session')
+        database = telemetry_cosmos_client.get_database_client(telemetryLog._database_name)
+        container = database.get_container_client(telemetryLog._container_name)
+        container.create_item(body=log_entry)
+
         return StreamingResponse(r, media_type="application/x-ndjson")
 
     except Exception as ex:
+        # Log the error
+        end_time = time.time()
+        response_time = end_time - chat_start_time
+        log_entry = {
+            'id': current_time.isoformat() + "-" + session_id,
+            'datetime': current_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'sessionID': session_id,
+            'response_time': response_time,
+            'error': str(ex)
+        }
+        telemetry_cosmos_client = CosmosClient(url=telemetryLog._url, credential=azure_credential, consistency_level='Session')
+        database = telemetry_cosmos_client.get_database_client(telemetryLog._database_name)
+        container = database.get_container_client(telemetryLog._container_name)
+        container.create_item(body=log_entry)
+        
         log.error("Error in chat:: %s", ex)
         raise HTTPException(status_code=500, detail=str(ex)) from ex
 
