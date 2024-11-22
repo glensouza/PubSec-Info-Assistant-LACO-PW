@@ -75,6 +75,7 @@ const Chat = () => {
     const [responseRequestTime, setResponseRequestTime] = useState<Date>(new Date());
     const [responseTime, setResponseTime] = useState<number | null>(null);
     const [feedback, setFeedback] = useState<string>("No Value");
+    const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
 
     async function fetchFeatureFlags() {
         try {
@@ -284,6 +285,18 @@ const Chat = () => {
 
     useEffect(() => {fetchFeatureFlags()}, []);
     useEffect(() => chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" }), [isLoading]);
+    useEffect(() => {
+        const handleResize = () => {
+            setScreenWidth(window.innerWidth);
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        // Cleanup event listener on component unmount
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
 
     const onRetrieveCountChange = (_ev?: React.SyntheticEvent<HTMLElement, Event>, newValue?: string) => {
         setRetrieveCount(parseInt(newValue || "5"));
@@ -431,7 +444,7 @@ const Chat = () => {
                                             key={index}
                                             answer={answer[1]}
                                             answerStream={answerStream}
-                                            setError={(error) => {setError(error); removeAnswerAtIndex(index); }}
+                                            setError={(error) => { setError(error); removeAnswerAtIndex(index); }}
                                             setAnswer={(response) => updateAnswerAtIndex(index, response)}
                                             isSelected={selectedAnswer === index && activeAnalysisPanelTab !== undefined}
                                             onCitationClicked={(c, s, p) => onShowCitation(c, s, p, index)}
@@ -448,6 +461,18 @@ const Chat = () => {
                                             chatMode={activeChatMode}
                                         />
                                     </div>
+                                    {selectedAnswer === index && screenWidth <= 1024 && activeAnalysisPanelTab && (
+                                        <AnalysisPanel
+                                            className={styles.chatAnalysisPanel}
+                                            activeCitation={activeCitation}
+                                            sourceFile={activeCitationSourceFile}
+                                            pageNumber={activeCitationSourceFilePageNumber}
+                                            onActiveTabChanged={x => onToggleTab(x, selectedAnswer)}
+                                            citationHeight="760px"
+                                            answer={answers[selectedAnswer][1]}
+                                            activeTab={activeAnalysisPanelTab}
+                                        />
+                                    )}
                                 </div>
                             ))}
                             {error ? (
@@ -486,7 +511,7 @@ const Chat = () => {
                     </div>
                 </div>
 
-                {answers.length > 0 && activeAnalysisPanelTab && (
+                {answers.length > 0 && screenWidth > 1024 && activeAnalysisPanelTab && (
                     <AnalysisPanel
                         className={styles.chatAnalysisPanel}
                         activeCitation={activeCitation}
