@@ -301,3 +301,9 @@ sup {
 .quarterMargin {
     margin: .25rem 0;
 }
+
+.feedbackError {
+    color: #ff0000;
+    display: flex;
+    justify-content: flex-end;
+}

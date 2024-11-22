@@ -962,9 +962,9 @@ async def log_chat(request: Request):
     if not request.headers.get("content-type") == "application/json":
         raise HTTPException(status_code=415, detail="Request must be JSON")
    
-    request_json = await request.json()
-    client = cosmos_client.CosmosClient(COSMOSDB_HOST, {'masterKey': COSMOSDB_MASTER_KEY}, user_agent="OpenAIChatBot", user_agent_overwrite=True)
     try:
+        request_json = await request.json()
+        client = cosmos_client.CosmosClient(COSMOSDB_HOST, {'masterKey': COSMOSDB_MASTER_KEY}, user_agent="OpenAIChatBot", user_agent_overwrite=True)
         db = client.create_database_if_not_exists(id=COSMOSDB_DATABASE_ID)
         container = db.create_container_if_not_exists(id=COSMOSDB_CONTAINER_ID, partition_key=PartitionKey(path='/sessionID'))
         session_id = str(date.today()) + "-" + request_json["sessionId"]
@@ -984,6 +984,8 @@ async def log_chat(request: Request):
         return {"id": log_entry['id']}
     
     except exceptions.CosmosHttpResponseError as e:
+        log.error("Error in chat:: %s", e)
+        print(f"Error processing agent response: {e}")
         raise HTTPException(status_code=500, detail=f"CosmosDB error: {e.message}")
 
 app.mount("/", StaticFiles(directory="static"), name="static")

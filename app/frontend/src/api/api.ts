@@ -24,8 +24,8 @@ import { BACKEND_URI } from "./config"; // Adjust the path as necessary
 const sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
 export async function logChatApi(historyRec: ChatHistory, idToken: string | undefined): Promise<Response> {
-    const url = "log_chat";
-    return await fetch(`${BACKEND_URI}/${url}`, {
+    const response = await fetch(`${BACKEND_URI}/log_chat`, {
+    // return await fetch(`${BACKEND_URI}/${url}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -41,6 +41,12 @@ export async function logChatApi(historyRec: ChatHistory, idToken: string | unde
             errorFlag: historyRec.errorFlag
         })
     });
+
+    if (response.status > 299 || !response.ok) {
+        throw Error("Error calling log_chat endpoint");
+    }
+
+    return response;
 }
 
 export async function chatApi(options: ChatRequest, signal: AbortSignal): Promise<Response> {

@@ -167,9 +167,16 @@ const Chat = () => {
             errorFlag: errorFlag,
             sessionId: ""
         };
-        logChatApi(historyRec, undefined).then(response => response.text()).then(data => {
-            setLastResponseId(data);
-        });
+        try {
+            await logChatApi(historyRec, lastResponseId).then(response => response.text()).then(data => {
+                setLastResponseId(data);
+            });
+        } catch (e) {
+            console.log(e);
+            //There may be better ways to handle this error here, but by Setting Error it will display another message below the current answer with the error received.
+            //setError(e);
+            throw Error("Error in logging chat");
+        }
     };
 
     const clearChat = () => {
@@ -345,7 +352,7 @@ const Chat = () => {
         };
     }, []);
 
-    const updateAnswerAtIndex = (index: number, response: ChatResponse) => {
+    const updateAnswerAtIndex = async (index: number, response: ChatResponse) => {
         setAnswers(currentAnswers => {
             const updatedAnswers = [...currentAnswers];
             updatedAnswers[index] = [updatedAnswers[index][0], response];
@@ -358,9 +365,16 @@ const Chat = () => {
             const responseFinishTime = new Date();
             const timeDiff = (responseFinishTime.getTime() - responseRequestTime.getTime()) / 1000;
             setResponseTime(timeDiff);
-            logChat(lastQuestionRef.current, response.answer, timeDiff ?? 0, feedback, "", "N");
+            try{
+                 await logChat(lastQuestionRef.current, response.answer, timeDiff ?? 0, feedback, "", "N");
+            } catch (e) {
+                console.log(e);
+                //Throw error
+                throw Error("Error in logging chat at update answer step");
+            }
         } else {
             console.log("No answer");
+            return;
         }
     }
 
@@ -424,14 +438,15 @@ const Chat = () => {
                                         approach={answer[1].approach}
                                     />
                                     <div className={styles.chatMessageGpt}>
-                                        <Answer
-                                            logChat={logChat}
+                                    <Answer
+                                            lastResponseId={lastResponseId ?? ""}
+                                            setLastResponseId={setLastResponseId}
                                             question={lastQuestionRef.current}
                                             responseTime={responseTime ?? 0}
                                             key={index}
                                             answer={answer[1]}
                                             answerStream={answerStream}
-                                            setError={(error) => {setError(error); removeAnswerAtIndex(index); }}
+                                            setError={(error) => { setError(error); removeAnswerAtIndex(index); }}
                                             setAnswer={(response) => updateAnswerAtIndex(index, response)}
                                             isSelected={selectedAnswer === index && activeAnalysisPanelTab !== undefined}
                                             onCitationClicked={(c, s, p) => onShowCitation(c, s, p, index)}

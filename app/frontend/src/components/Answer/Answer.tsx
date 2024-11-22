@@ -9,7 +9,7 @@ import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 
 import styles from "./Answer.module.css";
 
-import { Approaches, ChatResponse, getCitationFilePath, ChatMode } from "../../api";
+import { Approaches, ChatResponse, getCitationFilePath, ChatMode, ChatHistory, logChatApi } from "../../api";
 import { parseAnswerToHtml } from "./AnswerParser";
 import { AnswerIcon } from "./AnswerIcon";
 import { RAIPanel } from "../RAIPanel";
@@ -36,9 +36,10 @@ interface Props {
     answerStream: ReadableStream | undefined;
     setAnswer?: (data: ChatResponse) => void;
     setError?: (data: string) => void;
-    logChat: (question: string, response: string, responseTime: number, feedback: string, feedbackComment: string, errorFlag: string) => void;
     question: string;
     responseTime: number;
+    lastResponseId: string;
+    setLastResponseId: (id: string) => void;
 }
 
 export const Answer = ({
@@ -59,39 +60,54 @@ export const Answer = ({
     answerStream,
     setAnswer,
     setError,
-    logChat,
     question,
-    responseTime
+    responseTime,
+    lastResponseId,
+    setLastResponseId
 }: Props) => {
     const parsedAnswer = useMemo(() => parseAnswerToHtml(answer.answer, answer.approach, answer.work_citation_lookup, answer.web_citation_lookup, answer.thought_chain, onCitationClicked), [answer]);
     const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
     const [comment, setComment] = useState<string>("");
     const [placeholder, setPlaceholder] = useState("Type your comment here. Max characters: 500");
     const [isDisabled, setIsDisabled] = useState(false);
-    const [feedback, setFeedback] = useState<string>("No Value");
+    const [errorstate, setErrorState] = useState(false);
+    const [feedbackError] = useState("Error submitting feedback. Please try again.");
+
+    const logChatFeedback = async (question: string, response: string, responseTime: number, feedback: string, feedbackComment: string, errorFlag: string) => {
+        const historyRec: ChatHistory = {
+            question: question,
+            response: response,
+            responseTime: responseTime,
+            feedback: feedback,
+            feedbackComment: feedbackComment,
+            errorFlag: errorFlag,
+            sessionId: ""
+        };
+        try {
+            await logChatApi(historyRec, lastResponseId).then(response => response.text()).then(data => {
+                setLastResponseId(data);
+            });
+            setIsDisabled(true);
+            setPlaceholder(comment);
+        } catch (error) {
+            console.log("Error logging chat from Answer.tsx:", error);
+            setErrorState(true);
+        }
+    };
 
     const toggleComment = (iconName: string) => {
         setSelectedIcon(prevIcon => (prevIcon === iconName ? null : iconName));
         setComment('');
     };
 
-    const IconFeedbackLogic = (iconName: string) => {
-        (iconName === 'Like') ? setFeedback("Positive") : setFeedback("Negative");
-    }
-
 
     const handleSubmit = async () => {
         try {
-            if (selectedIcon) {
-                logChat(question, answer.answer, responseTime, (selectedIcon === 'Like') ? "Positive" : "Negative", comment, "N"); // Replace with actual parameters
-                setIsDisabled(true);
-                setPlaceholder(comment);
-            } else {
-                console.error("No icon selected for feedback");
-            }
+            await logChatFeedback(question, answer.answer, responseTime, (selectedIcon === 'Like') ? "Positive" : "Negative", comment, "N");
             console.log("Feedback submitted successfully");
         } catch (error) {
             console.error("Error submitting feedback:", error);
+            setErrorState(true);
         }
     };
 
