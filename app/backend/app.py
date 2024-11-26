@@ -41,8 +41,8 @@ from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.search.documents import SearchClient
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from shared_code.status_log import State, StatusClassification, StatusLog
-from custom_code.telemetry_log import TelemetryLog, TelemetryType
-from custom_code.conversation_log import ConversationLog
+from telemetry_log import TelemetryLog, TelemetryType
+from conversation_log import ConversationLog
 
 # === ENV Setup ===
 
