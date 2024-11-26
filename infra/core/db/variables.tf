@@ -50,6 +50,21 @@ variable "logContainerName" {
   type        = string
 }
 
+variable "chatDatabaseName" {
+  description = "The name for the chat history database"
+  type        = string
+}
+
+variable "chatHistoryContainerName" {
+  description = "The name for the chat history container"
+  type        = string
+}
+
+variable "telemetryContainerName" {
+  description = "The name for the telemetry container"
+  type        = string
+}
+
 variable "autoscaleMaxThroughput" {
   description = "Maximum autoscale throughput for the container"
   type        = number

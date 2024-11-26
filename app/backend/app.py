@@ -34,16 +34,15 @@ from approaches.tabulardataassistant import (
     process_agent_scratch_pad as td_agent_scratch_pad,
     get_images_in_temp
 )
+import azure.cosmos.exceptions as cosmos_exceptions
 from azure.cosmos import CosmosClient
-import azure.cosmos.cosmos_client as cosmos_client
-import azure.cosmos.exceptions as exceptions
-from azure.cosmos.partition_key import PartitionKey
 from azure.identity import ManagedIdentityCredential, AzureAuthorityHosts, DefaultAzureCredential, get_bearer_token_provider
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.search.documents import SearchClient
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from shared_code.status_log import State, StatusClassification, StatusLog
-from telemetry_log import TelemetryLog
+from custom_code.telemetry_log import TelemetryLog, TelemetryType
+from custom_code.conversation_log import ConversationLog
 
 # === ENV Setup ===
 
@@ -79,8 +78,9 @@ ENV = {
     "COSMOSDB_URL": None,
     "COSMOSDB_LOG_DATABASE_NAME": "statusdb",
     "COSMOSDB_LOG_CONTAINER_NAME": "statuscontainer",
-    "COSMOSDB_TELEMETRY_DATABASE_NAME": "telemetrydb",
-    "COSMOSDB_TELEMETRY_CONTAINER_NAME": "telemetrycontainer",
+    "COSMOSDB_CHAT_DATABASE_NAME": "OpenAIChatBot",
+    "COSMOSDB_CHAT_HISTORY_CONTAINER_NAME": "ChatHistory",
+    "COSMOSDB_TELEMETRY_CONTAINER_NAME": "Telemetry",
     "QUERY_TERM_LANGUAGE": "English",
     "TARGET_EMBEDDINGS_MODEL": "BAAI/bge-small-en-v1.5",
     "ENRICHMENT_APPSERVICE_URL": "enrichment",
@@ -122,18 +122,6 @@ class StatusResponse(pydantic.BaseModel):
 
 start_time = datetime.now()
 
-
-class Feedback(pydantic.BaseModel):
-    selectedIcon: str
-    comment: str
-
-
-COSMOSDB_HOST = "<REPLACE>"
-COSMOSDB_DATABASE_ID = "OpenAIChatBot"
-COSMOSDB_CONTAINER_ID = "ChatHistory"
-# REPLACE THIS
-COSMOSDB_MASTER_KEY = "<REPLACE>"
-
 IS_READY = False
 
 DF_FINAL = None
@@ -174,8 +162,16 @@ statusLog = StatusLog(
 telemetryLog = TelemetryLog(
     ENV["COSMOSDB_URL"],
     azure_credential,
-    ENV["COSMOSDB_TELEMETRY_DATABASE_NAME"],
+    ENV["COSMOSDB_CHAT_DATABASE_NAME"],
     ENV["COSMOSDB_TELEMETRY_CONTAINER_NAME"]
+)
+
+# Set ConversationLog to allow access to CosmosDB for conversation logging
+conversationLog = ConversationLog(
+    ENV["COSMOSDB_URL"],
+    azure_credential,
+    ENV["COSMOSDB_CHAT_DATABASE_NAME"],
+    ENV["COSMOSDB_CHAT_HISTORY_CONTAINER_NAME"]
 )
 
 # Set up clients for Cognitive Search and Storage
@@ -375,7 +371,7 @@ async def chat(request: Request):
 
         # Log the response time
         telemetryLog.record_telemetry(
-            "conversation entry", session_id, chat_start_time, "")
+            TelemetryType.CHAT, session_id, chat_start_time, "")
 
         return StreamingResponse(r, media_type="application/x-ndjson")
 
@@ -383,7 +379,7 @@ async def chat(request: Request):
         # Log the error
         log.error("Error in chat:: %s", ex)
         telemetryLog.record_telemetry(
-            "conversation entry error", session_id, chat_start_time, str(ex))
+            TelemetryType.CHAT_ERROR, session_id, chat_start_time, str(ex))
         raise HTTPException(status_code=500, detail=str(ex)) from ex
 
 
@@ -971,32 +967,25 @@ async def log_chat(request: Request):
     if not request.headers.get("content-type") == "application/json":
         raise HTTPException(status_code=415, detail="Request must be JSON")
 
-    request_json = await request.json()
-    client = cosmos_client.CosmosClient(COSMOSDB_HOST, {
-                                        'masterKey': COSMOSDB_MASTER_KEY}, user_agent="OpenAIChatBot", user_agent_overwrite=True)
+    log.info("Logging Conversation...")
     try:
-        db = client.create_database_if_not_exists(id=COSMOSDB_DATABASE_ID)
-        container = db.create_container_if_not_exists(
-            id=COSMOSDB_CONTAINER_ID, partition_key=PartitionKey(path='/sessionID'))
+        request_json = await request.json()
         session_id = str(date.today()) + "-" + request_json["sessionId"]
-        current_time = datetime.now()
-        log_entry = {
-            'id': current_time.isoformat() + "-" + session_id,
-            'datetime': current_time.strftime("%Y-%m-%d %H:%M:%S"),
-            'sessionID': session_id,
-            'user_input': request_json["question"],
-            'model_response': request_json["response"],
-            'model_response_time': request_json["responseTime"],
-            'feedback': request_json["feedback"],
-            'feedback_comment': request_json["feedbackComment"],
-            'error_flag': request_json["errorFlag"]
-        }
-        container.create_item(body=log_entry)
-        return {"id": log_entry['id']}
 
-    except exceptions.CosmosHttpResponseError as e:
-        raise HTTPException(
-            status_code=500, detail=f"CosmosDB error: {e.message}")
+        record_id = conversationLog.log_conversation(
+            session_id,
+            request_json["question"],
+            request_json["response"],
+            request_json["responseTime"],
+            request_json["feedback"],
+            request_json["feedbackComment"],
+            request_json["errorFlag"]
+        )
+        log.info("Done Logging Conversation...")
+        return {"id": record_id}
+    except cosmos_exceptions.CosmosHttpResponseError as e:
+        logging.error("Error in recording conversation history: %s", e)
+        raise HTTPException(status_code=500, detail=f"CosmosDB error: {e.message}")
 
 app.mount("/", StaticFiles(directory="static"), name="static")
 

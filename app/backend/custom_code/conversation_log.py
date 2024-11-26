@@ -1,15 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
 
-""" Library of code for telemetry logs reused across various calling features """
-import time
+""" Library of code for conversation logs reused across various calling features """
 from datetime import datetime
-import logging
-import traceback
 from azure.cosmos import CosmosClient, PartitionKey
 
-class TelemetryLog:
-    """ Class for logging status of various processes to Cosmos DB"""
+class ConversationLog:
+    """ Class for logging conversation history to Cosmos DB"""
 
     def __init__(self, url, azure_credential, database_name, container_name):
         """ Constructor function """
@@ -30,34 +27,29 @@ class TelemetryLog:
         if self._container_name not in [container['id'] for container
                                         in self.database.list_containers()]:
             self.container = self.database.create_container(id=self._container_name,
-                partition_key=PartitionKey(path="/file_name"))
+                partition_key=PartitionKey(path="/sessionID"))
 
-    def record_telemetry(self, telemetry_type:str, session_id:str, chat_start_time:time, error_message:str):
+    def log_conversation(self, session_id:str, question:str, model_response:str, model_response_time:any, feedback:str, feedback_comment:str, error_flag:any):
         """
         Records telemetry data for a given session.
 
         Args:
-            telemetry_type (str): The type of telemetry to be recorded.
-            session_id (str): The unique identifier for the session.
-            chat_start_time (time): The start time of the chat session in seconds since the epoch.
-            error_message (str): The error message to be logged, if any.
 
         Raises:
             Exception: If there is an error in recording telemetry, it logs the error and stack trace.
         """
-        try:
-            current_time = datetime.now()
-            end_time = time.time()
-            response_time = end_time - chat_start_time
-            log_entry = {
-                'id': current_time.isoformat() + "-" + session_id,
-                'datetime': current_time.strftime("%Y-%m-%d %H:%M:%S"),
-                'telemetry_type': telemetry_type,
-                'sessionID': session_id,
-                'response_time': response_time,
-                'error': error_message
-            }
-            self.container.create_item(body=log_entry)
-        except Exception as e:
-            logging.error("Error in recording telemetry: %s", e)
-            logging.error(traceback.format_exc())
+        current_time = datetime.now()
+        record_id = current_time.isoformat() + "-" + session_id
+        log_entry = {
+            'id': record_id,
+            'datetime': current_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'sessionID': session_id,
+            'user_input': question,
+            'model_response': model_response,
+            'model_response_time': model_response_time,
+            'feedback': feedback,
+            'feedback_comment': feedback_comment,
+            'error_flag': error_flag
+        }
+        self.container.create_item(body=log_entry)
+        return record_id

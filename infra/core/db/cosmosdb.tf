@@ -68,6 +68,30 @@ resource "azurerm_cosmosdb_sql_container" "log_container" {
   partition_key_paths = ["/file_name"]
 }
 
+resource "azurerm_cosmosdb_sql_database" "chat_database" {
+  name                = var.chatDatabaseName
+  resource_group_name = var.resourceGroupName
+  account_name        = azurerm_cosmosdb_account.cosmosdb_account.name
+}
+
+resource "azurerm_cosmosdb_sql_container" "chat_history_container" {
+  name                = var.chatHistoryContainerName
+  resource_group_name = var.resourceGroupName
+  account_name        = azurerm_cosmosdb_account.cosmosdb_account.name
+  database_name       = azurerm_cosmosdb_sql_database.chat_database.name
+
+  partition_key_paths = ["/sessionId"]
+}
+
+resource "azurerm_cosmosdb_sql_container" "telemetry_container" {
+  name                = var.telemetryContainerName
+  resource_group_name = var.resourceGroupName
+  account_name        = azurerm_cosmosdb_account.cosmosdb_account.name
+  database_name       = azurerm_cosmosdb_sql_database.chat_database.name
+
+  partition_key_paths = ["/sessionID"]
+}
+
 data "azurerm_subnet" "subnet" {
   count                = var.is_secure_mode ? 1 : 0
   name                 = var.subnet_name

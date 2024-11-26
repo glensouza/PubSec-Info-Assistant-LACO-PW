@@ -67,6 +67,18 @@ output "AZURE_COSMOSDB_LOG_CONTAINER_NAME" {
   value = module.cosmosdb.CosmosDBLogContainerName
 }
 
+output "AZURE_COSMOSDB_CHAT_DATABASE_NAME" {
+  value = module.cosmosdb.CosmosDBChatDatabaseName
+}
+
+output "AZURE_COSMOSDB_CHAT_HISTORY_CONTAINER_NAME" {
+  value = module.cosmosdb.CosmosDBChatHistoryContainerName
+}
+
+output "AZURE_COSMOSDB_TELEMETRY_CONTAINER_NAME" {
+  value = module.cosmosdb.CosmosDBTelemetryContainerName
+}
+
 output "AZURE_FORM_RECOGNIZER_ENDPOINT" {
   value = module.aiDocIntelligence.formRecognizerAccountEndpoint
 }
