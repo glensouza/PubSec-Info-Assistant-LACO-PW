@@ -20,12 +20,10 @@ import {
     ChatHistory
     } from "./models";
 
-import { BACKEND_URI } from "./config"; // Adjust the path as necessary
 const sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
 export async function logChatApi(historyRec: ChatHistory, idToken: string | undefined): Promise<Response> {
-    const response = await fetch(`${BACKEND_URI}/log_chat`, {
-    // return await fetch(`${BACKEND_URI}/${url}`, {
+    const response = await fetch('/log_chat', {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

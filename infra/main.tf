@@ -394,6 +394,9 @@ module "webapp" {
     COSMOSDB_URL                            = module.cosmosdb.CosmosDBEndpointURL
     COSMOSDB_LOG_DATABASE_NAME              = module.cosmosdb.CosmosDBLogDatabaseName
     COSMOSDB_LOG_CONTAINER_NAME             = module.cosmosdb.CosmosDBLogContainerName
+    COSMOSDB_CHAT_DATABASE_NAME             = module.cosmosdb.CosmosDBChatDatabaseName
+    COSMOSDB_CHAT_HISTORY_CONTAINER_NAME    = module.cosmosdb.CosmosDBChatHistoryContainerName
+    COSMOSDB_TELEMETRY_CONTAINER_NAME       = module.cosmosdb.CosmosDBTelemetryContainerName
     QUERY_TERM_LANGUAGE                     = var.queryTermLanguage
     AZURE_SUBSCRIPTION_ID                   = data.azurerm_client_config.current.subscription_id
     CHAT_WARNING_BANNER_TEXT                = var.chatWarningBannerText
@@ -590,6 +593,9 @@ module "cosmosdb" {
   tags                          = local.tags
   logDatabaseName               = "statusdb"
   logContainerName              = "statuscontainer"
+  chatDatabaseName              = "OpenAIChatBot"
+  chatHistoryContainerName      = "ChatHistory"
+  telemetryContainerName        = "Telemetry"
   resourceGroupName             = azurerm_resource_group.rg.name
   key_vault_name                = module.kvModule.keyVaultName
   is_secure_mode                = var.is_secure_mode  
