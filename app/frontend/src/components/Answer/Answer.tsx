@@ -194,6 +194,7 @@ export const Answer = ({
                     ) : (
                         <p>Thank you for your feedback!</p>
                     )}
+                    {errorstate && <p className={`${styles.feedbackError}`}>{feedbackError}</p>}
                 </div>
             )}
             </Stack.Item>
