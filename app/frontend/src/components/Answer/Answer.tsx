@@ -163,42 +163,6 @@ export const Answer = ({
                     /> }
             </Stack.Item>
 
-            <Stack.Item className={`${styles.flexCenter}`}>
-                <div className={`${styles.flexCenter} ${styles.iconFont24}`}>
-                    <span className={`${styles.onHover} ${selectedIcon === 'Like' ? styles.thumbSelected : ''} ${isDisabled ? styles.disabled : ''}`} onClick={() => !isDisabled && toggleComment('Like')}>
-                        <Icon iconName="Like" className={`${styles.flexCenter}`}/>
-                    </span>
-                </div>
-                <div className={`${styles.flexCenter} ${styles.iconFont24}`}>
-                    <span className={`${styles.onHover} ${selectedIcon === 'Dislike' ? styles.thumbSelected : ''} ${isDisabled ? styles.disabled : ''}`} onClick={() => !isDisabled && toggleComment('Dislike')}>
-                        <Icon iconName="Dislike" className={`${styles.flexCenter}`}/>
-                    </span>
-                </div>
-            </Stack.Item>
-            <Stack.Item>
-            {selectedIcon && (
-                <div>
-                    <TextField
-                        label="Add a comment (optional)"
-                        multiline
-                        rows={3}
-                        resizable={!isDisabled}
-                        placeholder={placeholder}
-                        value={comment}
-                        onChange={(e, newValue) => setComment(newValue || '')}
-                        disabled={isDisabled}
-                        maxLength={500}
-                    />
-                    {!isDisabled ? (
-                        <PrimaryButton className={`${styles.quarterMargin}`} onClick={handleSubmit} disabled={isDisabled}>Submit</PrimaryButton>
-                    ) : (
-                        <p>Thank you for your feedback!</p>
-                    )}
-                    {errorstate && <p className={`${styles.feedbackError}`}>{feedbackError}</p>}
-                </div>
-            )}
-            </Stack.Item>
-
             {(parsedAnswer.approach == Approaches.ChatWebRetrieveRead && !!parsedAnswer.web_citations.length) && (
                 <Stack.Item className={`${styles.quarterMargin}`}>
                     <Stack horizontal wrap tokens={{ childrenGap: 5 }}>
@@ -312,6 +276,47 @@ export const Answer = ({
                     </Stack>
                 </Stack.Item>
             )}
+
+            {answer.answer && 
+                <div>
+                    <Stack.Item className={`${styles.flexCenter}`}>
+                        <div className={`${styles.flexCenter} ${styles.iconFont24}`}>
+                            <span className={`${styles.onHover} ${selectedIcon === 'Like' ? styles.thumbSelected : ''} ${isDisabled ? styles.disabled : ''}`} onClick={() => !isDisabled && toggleComment('Like')}>
+                                <Icon iconName="Like" className={`${styles.flexCenter}`}/>
+                            </span>
+                        </div>
+                        <div className={`${styles.flexCenter} ${styles.iconFont24}`}>
+                            <span className={`${styles.onHover} ${selectedIcon === 'Dislike' ? styles.thumbSelected : ''} ${isDisabled ? styles.disabled : ''}`} onClick={() => !isDisabled && toggleComment('Dislike')}>
+                                <Icon iconName="Dislike" className={`${styles.flexCenter}`}/>
+                            </span>
+                        </div>
+                    </Stack.Item>
+                    <Stack.Item>
+                    {selectedIcon && (
+                        <div>
+                            <TextField
+                                label="Add a comment (optional)"
+                                multiline
+                                rows={3}
+                                resizable={!isDisabled}
+                                placeholder={placeholder}
+                                value={comment}
+                                onChange={(e, newValue) => setComment(newValue || '')}
+                                disabled={isDisabled}
+                                maxLength={500}
+                            />
+                            {!isDisabled ? (
+                                <PrimaryButton className={`${styles.quarterMargin}`} onClick={handleSubmit} disabled={isDisabled}>Submit</PrimaryButton>
+                            ) : (
+                                <p>Thank you for your feedback!</p>
+                            )}
+                            {errorstate && <p className={`${styles.feedbackError}`}>{feedbackError}</p>}
+                        </div>
+                    )}
+                    </Stack.Item>
+                </div>
+            }
+
             <Stack.Item>
                 <div className={styles.raiwarning}>AI-generated content may be incorrect</div>
             </Stack.Item>
