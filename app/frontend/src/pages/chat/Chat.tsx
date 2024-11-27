@@ -454,7 +454,7 @@ const Chat = () => {
                                     <Answer
                                             lastResponseId={lastResponseId ?? ""}
                                             setLastResponseId={setLastResponseId}
-                                            question={lastQuestionRef.current}
+                                            question={answer[0]}
                                             responseTime={responseTime ?? 0}
                                             key={index}
                                             answer={answer[1]}
